@@ -2,24 +2,24 @@
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
-   
+
   Simple Forth-inspired language interpreter
   Author: Kruchinin Tim
 }
 
 const
   stSize = 4096;
-type stack = record 
+type stack = record
   arr: array of longint;
   size: word;
 end;
@@ -74,10 +74,10 @@ procedure add(var s: stack; var e: boolean);                            // ( a b
   a,b: longint;
  begin
   e := false;
-  pop(s,a,e); 
+  pop(s,a,e);
   if (not e) then
    begin
-    pop(s,b,e); 
+    pop(s,b,e);
     if (not e) then
       push(s,a+b,e);
    end;
@@ -88,8 +88,8 @@ procedure sub(var s: stack; var e: boolean);                            // ( a b
   a,b: longint;
  begin
   e := false;
-  pop(s,a,e);  
-  if (not e) then 
+  pop(s,a,e);
+  if (not e) then
    begin
     pop(s,b,e);
     if (not e) then
@@ -106,11 +106,11 @@ procedure mult(var s: stack; var e: boolean);                           // ( a b
   if (not e) then
    begin
     pop(s,b,e);
-    if (not e) then 
+    if (not e) then
       push(s,a*b,e);
    end;
  end;
- 
+
 procedure divmod(var s: stack; var e: boolean);                         // ( a b -- {a div b} {a mod b} )
  var
   a,b: longint;
@@ -140,7 +140,7 @@ procedure dup(var s: stack; var e: boolean);                            // ( a -
       push(s,n,e);
    end;
  end;
- 
+
 procedure swap(var s: stack; var e: boolean);                           // ( a b -- b a )
  var
   a,b: longint;
@@ -245,7 +245,7 @@ function value(s: string): longint;
  begin
   val(s,n,e);
   value := n;
- end; 
+ end;
 
 procedure printStack(s: stack);                                         // ( -- )
  var
@@ -265,7 +265,7 @@ procedure pushret(var ret,stk: stack; var e: boolean);                  // ( a -
   if not e then
     push(ret,n,e);
  end;
- 
+
 procedure popret(var ret,stk: stack; var e: boolean);                   // ( , a -- a )
  var
    n: longint;
@@ -274,7 +274,7 @@ procedure popret(var ret,stk: stack; var e: boolean);                   // ( , a
   if not e then
     push(stk,n,e);
  end;
- 
+
 procedure copyret(var ret,stk: stack; var e: boolean);                  // ( , a -- a , a )
  var
    n: longint;
@@ -375,6 +375,7 @@ procedure opxor(var stk: stack; var e: boolean);                        // ( a b
     end;
  end;
 
+
 procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
  var
   a,n: longint;
@@ -383,7 +384,7 @@ procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n a
   if not e then
    begin
     pop(s,n,e);
-    if (n < 0) then 
+    if (n < 0) then
       n := 65536 + n;
     if not e then
       if (a >= RAMsize-1) or (a < 0) then
@@ -391,11 +392,13 @@ procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n a
       write('Error: Adress does not exist ');
       e := true;
      end
-    else 
+    else
      RAM.arr[a] := n div 256;
      RAM.arr[a+1] := n mod 256;
    end;
  end;
+
+function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
 procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( addr -- n )
  var
@@ -408,7 +411,7 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
     write('Error: Adress does not exist ');
     e := true;
    end
-  else 
+  else
    begin
     n := RAM.arr[a]*256+RAM.arr[a+1];
     if (n > 32767) then
@@ -416,8 +419,6 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
     push(s,n,e);
    end
  end;
-
-function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
 function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean): boolean;
  var
@@ -522,7 +523,7 @@ procedure format(var str: string);
   if copy(str,length(str),1) <> ' ' then                                //Если последний символ не пробел
    str := str + ' ';                                                    //  Добавляем его
  end;
-   
+
 procedure upperCase(var str: string);
  var
    min,max: string;
@@ -539,7 +540,7 @@ procedure upperCase(var str: string);
       end;
    end;
  end;
-   
+
 procedure macro(var str: string);
  var
   i: longint;
@@ -552,7 +553,7 @@ procedure macro(var str: string);
        delete(str,i,pos(')',str)-i+1);                                  //      Удаляем до ограничителя
   upperCase(str);                                                       //Делаем все буквы большими
   while pos(' DO ', str) <> 0 do                                        //Пока есть слова DO
-   begin 
+   begin
     insert(' SWAP >R >R BEGIN ',str,pos(' DO ', str));                  //  Применяем макрос
     delete(str,pos(' DO ', str),4);                                     //  Удаляем слово DO
    end;
@@ -563,7 +564,7 @@ str,pos(' LOOP ', str));                                                //  Пр
     delete(str,pos(' LOOP ', str),6);                                   // Удаляем слово LOOP
    end;
  end;
-   
+
 procedure addword(var words: dict; wordname, wordcode: string; var e: boolean);
  begin
   e := false;
@@ -579,7 +580,7 @@ procedure addword(var words: dict; wordname, wordcode: string; var e: boolean);
     inc(words.size);                                                    //  Увеличиваем размер словаря
    end;
  end;
-   
+
 procedure newWord(var str: string; var words: dict; var e: boolean);
  var
   wst, slovo: string;
@@ -608,8 +609,8 @@ procedure newWord(var str: string; var words: dict; var e: boolean);
      addword(words,copy(wst,1,pos(' ',wst)-1),
 copy(wst,pos(' ',wst),length(wst)),e);                                  //  Добавляем статью
     end;
- end;   
-  
+ end;
+
 procedure execIf(var str: string; var stk,ret: stack; var words: dict; var e: boolean);
  var
   slovo: string;
@@ -631,7 +632,7 @@ procedure execIf(var str: string; var stk,ret: stack; var words: dict; var e: bo
            dec(n);                                                      //        Уменьшаем вложенность
        until (str = '')  or (n = 0);                                    //    Пока строка не пуста и м в ифе
        if (str = '') and (slovo <> 'THEN') and (slovo <> 'ELSE') then   //    Если строка пуста и мы в ифе
-        begin 
+        begin
          e := true;                                                     //      ОШИБКА
          write('Error: multiline IF ');                                 //      Выводим сообщение
         end;
@@ -678,14 +679,15 @@ procedure execCycle(var str: string; var stk,ret: stack; var words: dict; var RA
       dec(n)                                                            //    Уменьшаем вложенность
     else if (slovo = 'BEGIN') then                                      //  Иначе если слово открывает цикл
        inc(n);                                                          //    Увеличиваем вложенность
-    if not((((slovo = 'UNTIL') or (slovo = 'REPEAT')) and (n = 0)) 
+    if not((((slovo = 'UNTIL') or (slovo = 'REPEAT')) and (n = 0))
 or ((slovo = 'WHILE') and (n = 1))) then                                //  Если слово не образует текущий цикл
       if f then                                                         //    Если мы пишем тело цикла BEGIN-UNTIL или условие цикла BEGIN-WHILE-REPEAT
         wst := wst + slovo + ' '                                        //      Добавляем слово в одну строку
       else                                                              //    Иначе
         nst := nst + slovo + ' '                                        //      Добавляем его в другую строку
   until not (str <> '') or (n = 0) ;                                    //Пока строка не закончислась и мы в цикле
-  if (str = '') and ((slovo <> 'UNTIL') or (slovo <> 'REPEAT'))  then   //Если строка пуста и мы не дошли до конца цикла
+  writeln('"',str,'" "',slovo,'"');
+  if (str = '') and ((slovo <> 'UNTIL') and (slovo <> 'REPEAT'))  then  //Если строка пуста и мы не дошли до конца цикла
    begin
     e := true;                                                          //  ОШИБКА
     write('Error: multiline BEGIN-(WHILE)-UNTIL(REPEAT) ');             //    Выводим сообщение
@@ -708,7 +710,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
      end;
    end
    else if (slovo = 'UNTIL') then                                       //Иначе если наши цикл BEGIN-UNTIL
-    begin 
+    begin
      format(wst);                                                       //  Приводим в нормальнй вид тело
      repeat                                                             //  Повторяем
        exec(wst,stk,ret,words,RAM,true,e);                              //    Выполняем тело
@@ -717,7 +719,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
      until (n <> 0) or e;                                               //  Пока нет ошибки и флаг ложен
    end;
  end;
- 
+
 function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean;
  var
    slovo: string;
@@ -782,20 +784,4 @@ begin
    end;
 end.
 
-// DEMOS (in public domain)
-// : !       ( n -- n!)           DUP 1 > IF DUP 1 - ! * ELSE DROP 1 THEN ; 
-// : FIB     ( n -- fib{n} )      DUP 2 > IF 1 - DUP 1 - FIB SWAP FIB + ELSE DROP 1 THEN ;
-// : FIB     ( n -- fib{n} )      1 - 0 1 BEGIN DUP >R + R> SWAP ROT 1 - DUP NOT >R ROT ROT R> UNTIL NIP NIP ;
-// : SQR     ( x -- {x^2} )       DUP * ;
-// : BUF     ( a -- bool{a} )     NOT NOT ;
-// : CR      ( -- )               10 EMIT ;
-// : SQRT    ( n -- sqrt{n} )     DUP 0 BEGIN >R 2DUP / OVER + 2 / NIP R> 1 + DUP 32 = UNTIL DROP DUP SQR ROT > IF 1 - THEN ;
-// : ISPRIME ( n -- isprime{n} )  DUP 3 > IF DUP SQRT 1 + >R 2 BEGIN 2DUP MOD NOT  IF 2DROP 0 0 1 ELSE 1 + DUP R@ = THEN UNTIL R> 2DROP BUF ELSE DROP -1 THEN ;
-// : PRIMES  ( n -- )             2 BEGIN DUP ISPRIME IF DUP . CR THEN 1 + 2DUP < UNTIL 2DROP ;
-// : SPACE   ( -- )               32 EMIT ;
-// : SPACES  ( n -- )             0 DO SPACE LOOP ;
-// : NEXTNUM ( NUM -- NEXTNUM )   DUP 2 * XOR ;
-// : STAR    ( -- )               42 EMIT ;
-// : OUTNUM  ( NUM -- )           BEGIN DUP 0 > WHILE DUP 2 MOD IF STAR ELSE SPACE THEN SPACE 2 / REPEAT DROP ;
-// : TRSERP  ( NUM -- )           1 + 1 SWAP DUP 1 DO CR DUP I - SPACES SWAP DUP OUTNUM NEXTNUM SWAP LOOP DROP ;
 
