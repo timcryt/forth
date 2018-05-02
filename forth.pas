@@ -375,8 +375,6 @@ procedure opxor(var stk: stack; var e: boolean);                        // ( a b
     end;
  end;
 
-function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; auto: boolean; var e: boolean): boolean; forward;
-
 procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
  var
   a,n: longint;
@@ -418,6 +416,8 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
     push(s,n,e);
    end
  end;
+
+function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
 function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean): boolean;
  var
@@ -741,7 +741,7 @@ function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; a
     else if slovo <> '' then                                            //  Иначе если  слово не пустое
       exec := parse(slovo, stk, ret, words, RAM, e);                    //    Выполняем его
    end;
-  if not automatic then                                                      //Если мы запускались вручную
+  if not automatic then                                                 //Если мы запускались вручную
    begin
     if (not e) then                                                     //  Если нет ошибки
       write(' ok');                                                     //    Всё OK
