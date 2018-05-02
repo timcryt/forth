@@ -718,7 +718,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
    end;
  end;
  
-function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; auto: boolean; var e: boolean): boolean;
+function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean;
  var
    slovo: string;
  begin
@@ -741,7 +741,7 @@ function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; a
     else if slovo <> '' then                                            //  Иначе если  слово не пустое
       exec := parse(slovo, stk, ret, words, RAM, e);                    //    Выполняем его
    end;
-  if not auto then                                                      //Если мы запускались вручную
+  if not automatic then                                                      //Если мы запускались вручную
    begin
     if (not e) then                                                     //  Если нет ошибки
       write(' ok');                                                     //    Всё OK
