@@ -377,6 +377,30 @@ procedure opnot(var stk: stack; var e: boolean);
       push(stk,0,e);
  end;
 
+procedure opinc(var stk: stack; var e: boolean);
+ var
+  n: longint;
+ begin
+  pop(stk,n,e);
+  if not e then
+   begin
+    inc(n);
+    push(stk,n,e);
+   end;
+ end;
+
+procedure opdec(var stk: stack; var e: boolean);
+ var
+  n: longint;
+ begin
+  pop(stk,n,e);
+  if not e then
+   begin
+    dec(n);
+    push(stk,n,e);
+   end;
+ end;
+
 procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
  var
   a,n: longint;
@@ -418,8 +442,6 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
     push(s,n,e);
    end
  end;
-
-
 
 function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
@@ -464,6 +486,10 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
      if not e then
        drop(stk,e);
     end
+   else if slovo = '1+' then
+     opinc(stk,e)
+   else if slovo = '1-' then
+     opdec(stk,e)
    else if slovo = '=' then
      eq(stk,e)
    else if slovo = '>' then
@@ -584,7 +610,7 @@ procedure macro(var str: string);
    end;
   while pos(' LOOP ', str) <> 0 do                                      //Пока есть слова LOOP
    begin
-    insert(' R> R> SWAP 1 + SWAP 2DUP >R  >R = UNTIL R> R> 2DROP ',
+    insert(' R> R> SWAP 1+ SWAP 2DUP >R >R = UNTIL R> R> 2DROP ',
 str,pos(' LOOP ', str));                                                //  Применяем макрос
     delete(str,pos(' LOOP ', str),6);                                   // Удаляем слово LOOP
    end;
