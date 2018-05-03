@@ -365,6 +365,17 @@ procedure opxor(var stk: stack; var e: boolean);                        // ( a b
     end;
  end;
 
+procedure opnot(var stk: stack; var e: boolean);
+ var
+   n: longint;
+ begin
+  pop(stk,n,e);
+  if not e then
+    if n = 0 then
+      push(stk,-1,e)
+    else
+      push(stk,0,e);
+ end;
 
 procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
  var
@@ -408,6 +419,8 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
    end
  end;
 
+
+
 function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
 function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean): boolean;
@@ -436,9 +449,21 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
    else if slovo = '/MOD' then
      divmod(stk,e)
    else if slovo = '/' then
-     exec('/MOD NIP ',stk,ret,words,RAM,true,e)
+    begin
+     divmod(stk,e);
+     if not e then
+      begin
+       swap(stk,e);
+       if not e then
+         drop(stk,e);
+      end;
+    end
    else if slovo = 'MOD' then
-     exec('/MOD DROP ',stk,ret,words,RAM,true,e)
+    begin
+     divmod(stk,e);
+     if not e then
+       drop(stk,e);
+    end
    else if slovo = '=' then
      eq(stk,e)
    else if slovo = '>' then
@@ -446,7 +471,7 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
    else if slovo = '<' then
      less(stk,e)
    else if slovo = 'NOT' then
-     exec('0 = ', stk, ret, words, RAM, true, e)
+     opnot(stk,e)
    else if slovo = 'AND' then
      opand(stk,e)
    else if slovo = 'OR' then
@@ -456,9 +481,17 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
    else if slovo = 'DUP' then
      dup(stk,e)
    else if slovo = '2DUP' then
-     exec('OVER OVER ',stk,ret,words,RAM,true,e)
+    begin
+     over(stk,e);
+     if not e then
+       over(stk,e);
+    end
    else if slovo = '2DROP' then
-     exec('DROP DROP ',stk,ret,words,RAM,true,e)
+    begin
+     drop(stk,e);
+     if not e then
+       drop(stk,e);
+    end
    else if slovo = 'SWAP' then
      swap(stk,e)
    else if slovo = 'OVER' then
@@ -468,7 +501,11 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
    else if slovo = 'DROP' then
      drop(stk,e)
    else if slovo = 'NIP' then
-      exec('SWAP DROP ',stk,ret,words,RAM,true,e)
+    begin
+     swap(stk,e);
+     if not e then
+       drop(stk,e);
+    end
    else if slovo = '>R' then
       pushret(ret,stk,e)
     else if slovo = 'R>' then
@@ -481,8 +518,6 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
       readRAM(stk,ram,e)
     else if (slovo = '?') then
       exec('@ . ',stk,ret,words,RAM,true,e)
-    else if (slovo = 'HERE') then
-      push(stk,RAM.size,e)
     else if slovo = '.' then
       print(stk,e)
     else if slovo = 'EMIT' then
