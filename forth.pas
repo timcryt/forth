@@ -496,7 +496,7 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
      more(stk,e)
    else if slovo = '<' then
      less(stk,e)
-   else if slovo = 'NOT' then
+   else if (slovo = 'NOT') or (slovo = '0=') then
      opnot(stk,e)
    else if slovo = 'AND' then
      opand(stk,e)
@@ -550,9 +550,8 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
       emit(stk,e)
     else if slovo = '.S' then
       printStack(stk)
-    else if slovo = 'BYE' then
+    else if (slovo = 'BYE') or (slovo = 'LEAVE') then
      begin
-      e := true;
       parse := true;
      end
     else if isNumeric(slovo) then
@@ -737,6 +736,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
       else                                                              //    Иначе
         nst := nst + slovo + ' '                                        //      Добавляем его в другую строку
   until not (str <> '') or (n = 0) ;                                    //Пока строка не закончислась и мы в цикле
+  f := false;
   if (str = '') and (slovo <> 'UNTIL') and (slovo <> 'REPEAT')  then    //Если строка пуста и мы не дошли до конца цикла
    begin
     e := true;                                                          //  ОШИБКА
@@ -748,13 +748,13 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
     format(nst);                                                        //  Приводим в нормальный вид тело
     exec(wst,stk,ret,words,RAM,true,e);                                 //  Выполняем условие
     pop(stk,n,e);                                                       //  Снимаем флаг
-    while not e and (n <> 0) do                                         //  Пока нет ошибки и флаг истинный
+    while not e and not f and (n <> 0) do                               //  Пока нет ошибки и флаг истинный
      begin
-      exec(nst,stk,ret,words,RAM,true,e);                               //    Выполняем тело
-      if not e then                                                     //    Если нет ошибки
+      f := exec(nst,stk,ret,words,RAM,true,e);                          //    Выполняем тело
+      if not e and not f then                                           //    Если нет ошибки
        begin
         exec(wst,stk,ret,words,RAM,true,e);                             //      Выполняем условие
-        if not e then                                                   //      Если нет ошибки
+        if not e and not f then                                         //      Если нет ошибки
          pop(stk,n,e);                                                  //        Снимаем флаг
        end;
      end;
@@ -763,20 +763,22 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
     begin
      format(wst);                                                       //  Приводим в нормальнй вид тело
      repeat                                                             //  Повторяем
-       exec(wst,stk,ret,words,RAM,true,e);                              //    Выполняем тело
-       if not e then                                                    //    Если нет ошибки
+       f := exec(wst,stk,ret,words,RAM,true,e);                         //    Выполняем тело
+       if not e and not f then                                          //    Если нет ошибки
          pop(stk,n,e);                                                  //    Снимаем флаг
-     until (n <> 0) or e;                                               //  Пока нет ошибки и флаг ложен
+     until (n <> 0) or e or f;                                          //  Пока нет ошибки и флаг ложен
    end;
  end;
 
 function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean;
  var
    slovo: string;
+   f: boolean;
  begin
   e := false;
+  f := false;
   exec := false;
-  while ((str <> '') and not e) do                                      //Пока нет ошибок и есть чего исполнять
+  while ((str <> '') and not e and not f) do                            //Пока нет ошибок и есть чего исполнять
    begin
     slovo := copy(str,1,pos(' ', str) - 1);                             //  Выбираем слово
     delete(str,1,pos(' ', str));                                        //  Удаляем его из строки
@@ -791,11 +793,12 @@ function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; a
     else if (slovo = 'BEGIN') then                                      //  Иначе если слово BEGIN
       execCycle(str,stk,ret,words,RAM,e)                                //    Запускаем цикл
     else if slovo <> '' then                                            //  Иначе если  слово не пустое
-      exec := parse(slovo, stk, ret, words, RAM, e);                    //    Выполняем его
+      f := parse(slovo, stk, ret, words, RAM, e);                       //    Выполняем его
    end;
+  exec := f;
   if not automatic then                                                 //Если мы запускались вручную
    begin
-    if (not e) then                                                     //  Если нет ошибки
+    if (not e and not f) then                                           //  Если нет ошибки
       write(' ok');                                                     //    Всё OK
     writeln;                                                            //  Пропускаем строку
    end;
