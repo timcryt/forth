@@ -136,8 +136,7 @@ procedure dup(var s: stack; var e: boolean);                            // ( a -
   if (not e) then
    begin
     push(s,n,e);
-    if (not e) then
-      push(s,n,e);
+    push(s,n,e);
    end;
  end;
 
@@ -152,8 +151,7 @@ procedure swap(var s: stack; var e: boolean);                           // ( a b
     if (not e) then
      begin
       push(s,a,e);
-      if (not e) then
-        push(s,b,e);
+      push(s,b,e);
      end;
    end;
  end;
@@ -169,12 +167,8 @@ procedure over(var s: stack; var e: boolean);                           // ( a b
     if (not e) then
      begin
       push(s,b,e);
-      if (not e) then
-       begin
-        push(s,a,e);
-        if (not e) then
-          push(s,b,e)
-       end;
+      push(s,a,e);
+      push(s,b,e);
      end;
    end;
  end;
@@ -200,15 +194,11 @@ procedure rot(var s: stack; var e: boolean);                            // ( a b
       if (not e) then
        begin
         push(s,b,e);
-        if (not e) then
-         begin
-          push(s,a,e);
-          if (not e) then
-            push(s,c,e)
-         end;
+        push(s,a,e);
+        push(s,c,e);
        end;
      end;
-    end;
+   end;
  end;
 
 procedure print(var s: stack; var e: boolean);                          // (a -- )
@@ -398,8 +388,6 @@ procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n a
    end;
  end;
 
-function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
-
 procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( addr -- n )
  var
   a,n: longint;
@@ -419,6 +407,8 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
     push(s,n,e);
    end
  end;
+
+function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
 function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean): boolean;
  var
@@ -686,8 +676,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
       else                                                              //    Иначе
         nst := nst + slovo + ' '                                        //      Добавляем его в другую строку
   until not (str <> '') or (n = 0) ;                                    //Пока строка не закончислась и мы в цикле
-  writeln('"',str,'" "',slovo,'"');
-  if (str = '') and ((slovo <> 'UNTIL') and (slovo <> 'REPEAT'))  then  //Если строка пуста и мы не дошли до конца цикла
+  if (str = '') and (slovo <> 'UNTIL') and (slovo <> 'REPEAT')  then    //Если строка пуста и мы не дошли до конца цикла
    begin
     e := true;                                                          //  ОШИБКА
     write('Error: multiline BEGIN-(WHILE)-UNTIL(REPEAT) ');             //    Выводим сообщение
