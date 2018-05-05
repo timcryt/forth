@@ -54,7 +54,7 @@ procedure push(var s: stack; n: longint; var e: boolean);               // ( -- 
    end;
  end;
 
-procedure pop(var s: stack; var n: longint; var e: boolean);            // (n -- )
+procedure pop(var s: stack; var n: longint; var e: boolean);            // ( n -- )
  begin
   e := false;
   if (s.size = 0) then
@@ -69,7 +69,7 @@ procedure pop(var s: stack; var n: longint; var e: boolean);            // (n --
    end;
  end;
 
-procedure add(var s: stack; var e: boolean);                            // ( a b -- {a+b} )
+procedure add(var s: stack; var e: boolean);                            // ( a b -- {a + b} )
  var
   a,b: longint;
  begin
@@ -173,7 +173,7 @@ procedure over(var s: stack; var e: boolean);                           // ( a b
    end;
  end;
 
-procedure drop(var s: stack; var e: boolean);                           // (a -- )
+procedure drop(var s: stack; var e: boolean);                           // ( a -- )
  var
   t: longint;
  begin
@@ -201,7 +201,7 @@ procedure rot(var s: stack; var e: boolean);                            // ( a b
    end;
  end;
 
-procedure print(var s: stack; var e: boolean);                          // (a -- )
+procedure print(var s: stack; var e: boolean);                          // ( a -- )
  var
   a: longint;
  begin
@@ -211,7 +211,18 @@ procedure print(var s: stack; var e: boolean);                          // (a --
     write(a,' ')
  end;
 
-procedure emit(var s: stack; var e: boolean);                           // (a -- )
+procedure printUns(var s: stack; var e: boolean);                       // ( u -- )
+ var
+  a: longint;
+  b: longword;
+ begin
+  pop(s,a,e);
+  b := a;
+  if (not e) then
+    write(b,' ');
+ end;
+
+procedure emit(var s: stack; var e: boolean);                           // ( a -- )
  var
   a: longint;
  begin
@@ -323,6 +334,48 @@ procedure more(var stk: stack; var e: boolean);                         // ( a b
          push(stk,-1,e)
        else
          push(stk,0,e);
+    end;
+ end;
+
+procedure unsLess(var stk: stack; var e: boolean);                      // ( u1 u2 -- { u1 < u2 } )
+ var
+  a,b: longint;
+  c,d: longword;
+ begin
+   pop(stk,a,e);
+   if not e then
+    begin
+     pop(stk,b,e);
+     if not e then
+      begin
+       c := a;
+       d := b;
+       if d < c then
+         push(stk,-1,e)
+       else
+         push(stk,0,e);
+      end;
+    end;
+ end;
+
+procedure unsMore(var stk: stack; var e: boolean);                      // ( u1 u2 -- { u1 > u2 } )
+ var
+  a,b: longint;
+  c,d: longword;
+ begin
+   pop(stk,a,e);
+   if not e then
+    begin
+     pop(stk,b,e);
+     if not e then
+      begin
+       c := a;
+       d := b;
+       if d > c then
+         push(stk,-1,e)
+       else
+         push(stk,0,e);
+      end;
     end;
  end;
 
@@ -490,12 +543,16 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
      opinc(stk,e)
    else if slovo = '1-' then
      opdec(stk,e)
-   else if slovo = '=' then
+   else if (slovo = '=') or (slovo = 'U=') then
      eq(stk,e)
    else if slovo = '>' then
      more(stk,e)
    else if slovo = '<' then
      less(stk,e)
+   else if slovo = 'U>' then
+     unsMore(stk,e)
+   else if slovo = 'U<' then
+     unsLess(stk,e)
    else if (slovo = 'NOT') or (slovo = '0=') then
      opnot(stk,e)
    else if slovo = 'AND' then
@@ -546,6 +603,8 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
       exec('@ . ',stk,ret,words,RAM,true,e)
     else if slovo = '.' then
       print(stk,e)
+    else if slovo = 'U.' then
+      printUns(stk,e)
     else if slovo = 'EMIT' then
       emit(stk,e)
     else if slovo = '.S' then
@@ -828,13 +887,11 @@ var
 begin
   init(stk,ret,words,RAM); 	                                            //Инициализируем структуры
   bye := false;
-  while not bye do                                                      //Пока не закончили
+  while not bye and not eof do                                          //Пока не закончили
    begin
-    readln(str);                                                        //  Вводм строку
+    readln(str);                                                        //  Вводим строку
     format(str);                                                        //  Форматируем строку
     macro(str);                                                         //  Применяем маросы
     bye := exec(str,stk,ret,words,RAM,false,e);                         //  Исполняем
    end;
 end.
-
-
