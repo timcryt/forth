@@ -456,14 +456,13 @@ procedure opdec(var stk: stack; var e: boolean);
 
 procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
  var
-  a,n: longint;
+  a,k: longint;
+  n: longword;
  begin
   pop(s,a,e);
   if not e then
    begin
-    pop(s,n,e);
-    if (n < 0) then
-      n := 65536 + n;
+    pop(s,k,e);
     if not e then
       if (a >= RAMsize-1) or (a < 0) then
      begin
@@ -471,14 +470,18 @@ procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n a
       e := true;
      end
     else
-     RAM.arr[a] := n div 256;
-     RAM.arr[a+1] := n mod 256;
+     n := k;
+     RAM.arr[a] := n div 16777216;
+     RAM.arr[a+1] := n div 65536 mod 256;
+     RAM.arr[a+2] := n div 256 mod 256;
+     RAM.arr[a+3] := n mod 256;
    end;
  end;
 
 procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( addr -- n )
  var
-  a,n: longint;
+  a: longint;
+  n: longword;
  begin
   pop(s,a,e);
   if not e then
@@ -489,10 +492,77 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
    end
   else
    begin
-    n := RAM.arr[a]*256+RAM.arr[a+1];
-    if (n > 32767) then
-      n := n-65536;
+    n := RAM.arr[a]*16777216+RAM.arr[a+1]*65536+RAM.arr[a+2]*256+RAM.arr[a+3];
     push(s,n,e);
+   end
+ end;
+
+procedure plusRAM(var s: stack; var RAM: vars; var e: boolean);
+ begin
+  dup(s,e);
+  if not e then
+   begin
+    readRAM(s,RAM,e);
+    if not e then
+     begin
+      rot(s,e);
+      if not e then
+       begin
+        add(s,e);
+        if not e then
+         begin
+          swap(s,e);
+          if not e then
+            writeRAM(s,RAM,e);
+         end;
+       end;
+     end
+   end;
+ end;
+
+procedure writeChr(var s: stack; var RAM: vars; var e: boolean);
+ var
+  k,a: longint;
+  n: longword;
+ begin
+  pop(s,a,e);
+  if not e then
+   begin
+    if (a < 0) or (a > RAMsize-1) then
+     begin
+      e := true;
+      write('Error: Adress does not exist ');
+     end
+    else
+     begin
+      pop(s,k,e);
+      if not e then
+       begin
+        n := k;
+        RAM.arr[a] := n mod 256;
+       end;
+     end;
+   end
+ end;
+
+procedure readChr(var s: stack; var RAM: vars; var e: boolean);
+ var
+  a: longint;
+  n: byte;
+ begin
+  pop(s,a,e);
+  if not e then
+   begin
+    if (a < 0) or (a > RAMsize-1) then
+     begin
+      e := true;
+      write('Error: Adress does not exist ');
+     end
+    else
+     begin
+       n := RAM.arr[a];
+       push(s,n,e);
+     end;
    end
  end;
 
@@ -597,8 +667,14 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
       copyret(ret,stk,e)
     else if (slovo = '!') then
       writeRAM(stk,ram,e)
+    else if (slovo = '!+') then
+      plusRAM(stk,ram,e)
     else if (slovo = '@') then
       readRAM(stk,ram,e)
+    else if (slovo = 'C!') then
+      writeChr(stk,ram,e)
+    else if (slovo = 'C@') then
+      readChr(stk,ram,e)
     else if (slovo = '?') then
       exec('@ . ',stk,ret,words,RAM,true,e)
     else if slovo = '.' then
@@ -625,8 +701,8 @@ function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars
 
 procedure format(var str: string);
  begin
-  while (pos('  ', str) <> 0) do                                        //Пока есть двойне пробелы
-    delete(str,pos('  ',str),1);                                        //  Уничтожаем из
+  while (pos('  ', str) <> 0) do                                        //Пока есть двойные пробелы
+    delete(str,pos('  ',str),1);                                        //  Уничтожаем их
   if copy(str,1,1) <> ' ' then                                          //Если первый символ не пробел
     str := ' ' + str;                                                   //  Добавляем его
   if copy(str,length(str),1) <> ' ' then                                //Если последний символ не пробел
