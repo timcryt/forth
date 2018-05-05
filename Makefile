@@ -1,6 +1,5 @@
 forth:
-	fpc -O3 -XsX forth.pas
-	
+	fpc -O3 -XsX -Sh forth.pas
 	
 install:
 	cp forth /usr/bin/
