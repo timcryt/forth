@@ -17,20 +17,65 @@
   Author: Kruchinin Tim
 }
 
-const
-  stSize = 4096;
-type stack = record
-  arr: array of longint;
-  size: word;
-end;
+type
+ Pstack = ^stack;
+ stack = record
+  next: Pstack;
+  value: longint;
+ end;
 
-const
-  dictSize = 64;
-type dict = record
-  names: array of string;
-  code:  array of string;
-  size: word;
-end;
+function stack_init(val: longint): Pstack;
+ var
+  t: Pstack;
+ begin
+  new(t);
+  t^.value := val;
+  t^.next := nil;
+  stack_init := t;
+ end;
+
+function stack_depth(s: Pstack): longint;
+ var
+  d: integer;
+ begin
+  d := 0;
+  while s^.next <> nil do
+   begin
+    inc(d);
+    s := s^.next;
+   end;
+  stack_depth := d;
+ end;
+
+procedure stack_delete(var s: Pstack);
+ var
+  t: Pstack;
+ begin
+  while (s^.next <> nil) do
+   begin
+    t := s;
+    s := s^.next;
+    dispose(t);
+   end
+ end;
+
+type
+ Pdict = ^dict;
+ dict = record
+  name: string;
+  code: string;
+  next: Pdict;
+ end;
+
+function dict_init(name, code: string): Pdict;
+ var
+  t: Pdict;
+ begin
+  new(t);
+  t^.name := name;
+  t^.code := code;
+  dict_init := t;
+ end;
 
 const
   RAMsize = 65536;
@@ -39,37 +84,36 @@ type vars = record
   size: word;
 end;
 
-procedure push(var s: stack; n: longint; var e: boolean);               // ( -- n )
+procedure push(var s: Pstack; n: longint; var e: boolean);              // ( -- n )
+ var
+  t: Pstack;
  begin
   e := false;
-  if (s.size = stSize) then
-   begin
-    e := true;
-    write('Error: stack overflow ');
-   end
-  else
-   begin
-    s.arr[s.size] := n;
-    inc(s.size);
-   end;
+  t := stack_init(n);
+  t^.next := s;
+  s := t;
  end;
 
-procedure pop(var s: stack; var n: longint; var e: boolean);            // ( n -- )
+procedure pop(var s: Pstack; var n: longint; var e: boolean);           // ( n -- )
+ var
+  t: Pstack;
  begin
   e := false;
-  if (s.size = 0) then
+  if (s^.next = nil) then
    begin
     e := true;
     write('Error: stack underflow ');
    end
   else
    begin
-    dec(s.size);
-    n := s.arr[s.size];
+    n := s^.value;
+    t := s;
+    s := s^.next;
+    dispose(t);
    end;
  end;
 
-procedure add(var s: stack; var e: boolean);                            // ( a b -- {a + b} )
+procedure add(var s: Pstack; var e: boolean);                           // ( a b -- {a + b} )
  var
   a,b: longint;
  begin
@@ -83,7 +127,7 @@ procedure add(var s: stack; var e: boolean);                            // ( a b
    end;
  end;
 
-procedure sub(var s: stack; var e: boolean);                            // ( a b -- { a - b } )
+procedure sub(var s: Pstack; var e: boolean);                           // ( a b -- { a - b } )
  var
   a,b: longint;
  begin
@@ -97,7 +141,7 @@ procedure sub(var s: stack; var e: boolean);                            // ( a b
    end;
  end;
 
-procedure mult(var s: stack; var e: boolean);                           // ( a b -- { a * b} )
+procedure mult(var s: Pstack; var e: boolean);                          // ( a b -- { a * b} )
  var
   a,b: longint;
  begin
@@ -111,7 +155,7 @@ procedure mult(var s: stack; var e: boolean);                           // ( a b
    end;
  end;
 
-procedure divmod(var s: stack; var e: boolean);                         // ( a b -- {a div b} {a mod b} )
+procedure divmod(var s: Pstack; var e: boolean);                        // ( a b -- {a div b} {a mod b} )
  var
   a,b: longint;
  begin
@@ -128,7 +172,7 @@ procedure divmod(var s: stack; var e: boolean);                         // ( a b
    end;
  end;
 
-procedure dup(var s: stack; var e: boolean);                            // ( a -- a a )
+procedure dup(var s: Pstack; var e: boolean);                           // ( a -- a a )
  var
   n: longint;
  begin
@@ -140,7 +184,7 @@ procedure dup(var s: stack; var e: boolean);                            // ( a -
    end;
  end;
 
-procedure swap(var s: stack; var e: boolean);                           // ( a b -- b a )
+procedure swap(var s: Pstack; var e: boolean);                          // ( a b -- b a )
  var
   a,b: longint;
  begin
@@ -156,7 +200,7 @@ procedure swap(var s: stack; var e: boolean);                           // ( a b
    end;
  end;
 
-procedure over(var s: stack; var e: boolean);                           // ( a b -- a b a )
+procedure over(var s: Pstack; var e: boolean);                          // ( a b -- a b a )
  var
   a,b: longint;
  begin
@@ -173,14 +217,14 @@ procedure over(var s: stack; var e: boolean);                           // ( a b
    end;
  end;
 
-procedure drop(var s: stack; var e: boolean);                           // ( a -- )
+procedure drop(var s: Pstack; var e: boolean);                          // ( a -- )
  var
   t: longint;
  begin
   pop(s,t,e);
  end;
 
-procedure rot(var s: stack; var e: boolean);                            // ( a b c -- b c a )
+procedure rot(var s: Pstack; var e: boolean);                           // ( a b c -- b c a )
  var
    a,b,c: longint;
  begin
@@ -201,7 +245,7 @@ procedure rot(var s: stack; var e: boolean);                            // ( a b
    end;
  end;
 
-procedure print(var s: stack; var e: boolean);                          // ( a -- )
+procedure print(var s: Pstack; var e: boolean);                         // ( a -- )
  var
   a: longint;
  begin
@@ -211,7 +255,7 @@ procedure print(var s: stack; var e: boolean);                          // ( a -
     write(a,' ')
  end;
 
-procedure printUns(var s: stack; var e: boolean);                       // ( u -- )
+procedure printUns(var s: Pstack; var e: boolean);                      // ( u -- )
  var
   a: longint;
   b: longword;
@@ -222,7 +266,7 @@ procedure printUns(var s: stack; var e: boolean);                       // ( u -
     write(b,' ');
  end;
 
-procedure emit(var s: stack; var e: boolean);                           // ( a -- )
+procedure emit(var s: Pstack; var e: boolean);                          // ( a -- )
  var
   a: longint;
  begin
@@ -248,17 +292,20 @@ function value(s: string): longint;
   value := n;
  end;
 
-procedure printStack(s: stack);                                         // ( -- )
+procedure printStack(s: Pstack);                                        // ( -- )
  var
   i: longint;
  begin
-  write('S<',s.size,'> ');
-  for i := 0 to s.size-1 do
-    write(s.arr[i],' ');
+  write('S<',stack_depth(s),'> ');
+  for i := 1 to stack_depth(s) do
+   begin
+    write(s^.value,' ');
+    s := s^.next;
+   end;
   writeln;
  end;
 
-procedure pushret(var ret,stk: stack; var e: boolean);                  // ( a -- , a )
+procedure pushret(var ret,stk: Pstack; var e: boolean);                 // ( a -- , a )
  var
    n: longint;
  begin
@@ -267,7 +314,7 @@ procedure pushret(var ret,stk: stack; var e: boolean);                  // ( a -
     push(ret,n,e);
  end;
 
-procedure popret(var ret,stk: stack; var e: boolean);                   // ( , a -- a )
+procedure popret(var ret,stk: Pstack; var e: boolean);                  // ( , a -- a )
  var
    n: longint;
  begin
@@ -276,7 +323,7 @@ procedure popret(var ret,stk: stack; var e: boolean);                   // ( , a
     push(stk,n,e);
  end;
 
-procedure copyret(var ret,stk: stack; var e: boolean);                  // ( , a -- a , a )
+procedure copyret(var ret,stk: Pstack; var e: boolean);                 // ( , a -- a , a )
  var
    n: longint;
  begin
@@ -289,7 +336,7 @@ procedure copyret(var ret,stk: stack; var e: boolean);                  // ( , a
    end;
  end;
 
-procedure eq(var stk: stack; var e: boolean);                           // ( a b -- {a == b} )
+procedure eq(var stk: Pstack; var e: boolean);                          // ( a b -- {a == b} )
  var
    a,b: longint;
  begin
@@ -305,7 +352,7 @@ procedure eq(var stk: stack; var e: boolean);                           // ( a b
     end;
  end;
 
-procedure less(var stk: stack; var e: boolean);                         // ( a b -- {a < b} )
+procedure less(var stk: Pstack; var e: boolean);                        // ( a b -- {a < b} )
  var
    a,b: longint;
  begin
@@ -321,7 +368,7 @@ procedure less(var stk: stack; var e: boolean);                         // ( a b
     end;
  end;
 
-procedure more(var stk: stack; var e: boolean);                         // ( a b -- { a > b } )
+procedure more(var stk: Pstack; var e: boolean);                        // ( a b -- { a > b } )
  var
    a,b: longint;
  begin
@@ -337,7 +384,7 @@ procedure more(var stk: stack; var e: boolean);                         // ( a b
     end;
  end;
 
-procedure unsLess(var stk: stack; var e: boolean);                      // ( u1 u2 -- { u1 < u2 } )
+procedure unsLess(var stk: Pstack; var e: boolean);                     // ( u1 u2 -- { u1 < u2 } )
  var
   a,b: longint;
   c,d: longword;
@@ -358,7 +405,7 @@ procedure unsLess(var stk: stack; var e: boolean);                      // ( u1 
     end;
  end;
 
-procedure unsMore(var stk: stack; var e: boolean);                      // ( u1 u2 -- { u1 > u2 } )
+procedure unsMore(var stk: Pstack; var e: boolean);                     // ( u1 u2 -- { u1 > u2 } )
  var
   a,b: longint;
   c,d: longword;
@@ -379,7 +426,7 @@ procedure unsMore(var stk: stack; var e: boolean);                      // ( u1 
     end;
  end;
 
-procedure opand(var stk: stack; var e: boolean);                        // ( a b -- {a & b} )
+procedure opand(var stk: Pstack; var e: boolean);                       // ( a b -- {a & b} )
  var
    a,b: longint;
  begin
@@ -392,7 +439,7 @@ procedure opand(var stk: stack; var e: boolean);                        // ( a b
     end;
  end;
 
-procedure opor(var stk: stack; var e: boolean);                         // ( a b -- {a || b} )
+procedure opor(var stk: Pstack; var e: boolean);                        // ( a b -- {a || b} )
  var
    a,b: longint;
  begin
@@ -405,7 +452,7 @@ procedure opor(var stk: stack; var e: boolean);                         // ( a b
     end;
  end;
 
-procedure opxor(var stk: stack; var e: boolean);                        // ( a b -- {a ^ b} )
+procedure opxor(var stk: Pstack; var e: boolean);                       // ( a b -- {a ^ b} )
  var
    a,b: longint;
  begin
@@ -418,7 +465,7 @@ procedure opxor(var stk: stack; var e: boolean);                        // ( a b
     end;
  end;
 
-procedure opnot(var stk: stack; var e: boolean);
+procedure opnot(var stk: Pstack; var e: boolean);
  var
    n: longint;
  begin
@@ -430,7 +477,7 @@ procedure opnot(var stk: stack; var e: boolean);
       push(stk,0,e);
  end;
 
-procedure opinc(var stk: stack; var e: boolean);
+procedure opinc(var stk: Pstack; var e: boolean);
  var
   n: longint;
  begin
@@ -442,7 +489,7 @@ procedure opinc(var stk: stack; var e: boolean);
    end;
  end;
 
-procedure opdec(var stk: stack; var e: boolean);
+procedure opdec(var stk: Pstack; var e: boolean);
  var
   n: longint;
  begin
@@ -454,7 +501,7 @@ procedure opdec(var stk: stack; var e: boolean);
    end;
  end;
 
-procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n addr -- )
+procedure writeRAM(var s: Pstack; var RAM: vars; var e: boolean);       // ( n addr -- )
  var
   a,k: longint;
   n: longword;
@@ -478,7 +525,7 @@ procedure writeRAM(var s: stack; var RAM: vars; var e: boolean);        // ( n a
    end;
  end;
 
-procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( addr -- n )
+procedure readRAM(var s: Pstack; var RAM: vars; var e: boolean);        // ( addr -- n )
  var
   a: longint;
   n: longword;
@@ -497,7 +544,7 @@ procedure readRAM(var s: stack; var RAM: vars; var e: boolean);         // ( add
    end
  end;
 
-procedure plusRAM(var s: stack; var RAM: vars; var e: boolean);
+procedure plusRAM(var s: Pstack; var RAM: vars; var e: boolean);
  begin
   dup(s,e);
   if not e then
@@ -520,7 +567,7 @@ procedure plusRAM(var s: stack; var RAM: vars; var e: boolean);
    end;
  end;
 
-procedure writeChr(var s: stack; var RAM: vars; var e: boolean);
+procedure writeChr(var s: Pstack; var RAM: vars; var e: boolean);
  var
   k,a: longint;
   n: longword;
@@ -545,7 +592,7 @@ procedure writeChr(var s: stack; var RAM: vars; var e: boolean);
    end
  end;
 
-procedure readChr(var s: stack; var RAM: vars; var e: boolean);
+procedure readChr(var s: Pstack; var RAM: vars; var e: boolean);
  var
   a: longint;
   n: byte;
@@ -566,22 +613,24 @@ procedure readChr(var s: stack; var RAM: vars; var e: boolean);
    end
  end;
 
-function exec(str: string; var stk, ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
+function exec(str: string; var stk, ret: Pstack; var words: Pdict; var RAM: vars; automatic: boolean; var e: boolean): boolean; forward;
 
-function parse(slovo: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean): boolean;
+function parse(slovo: string; var stk,ret: Pstack; var words: Pdict; var RAM: vars; var e: boolean): boolean;
  var
-  i: longint;
   isWOrd: boolean;
+  t: Pdict;
  begin
   parse := false;
   isWord := false;
-  for i := words.size downto 0 do
+  t := words;
+  while (t^.next <> nil) do
    begin
-    if (not isWord) and (words.names[i] = slovo) then
+    if (not isWord) and (t^.name = slovo) then
      begin
-      exec(words.code[i], stk, ret, words, RAM, true, e);
+      exec(t^.code, stk, ret, words, RAM, true, e);
       isWord := true;
      end;
+    t := t^.next;
    end;
   if not isWord then
    begin
@@ -750,23 +799,17 @@ str,pos(' LOOP ', str));                                                //  Пр
    end;
  end;
 
-procedure addword(var words: dict; wordname, wordcode: string; var e: boolean);
+procedure addword(var words: Pdict; wordname, wordcode: string; var e: boolean);
+ var
+  t: Pdict;
  begin
   e := false;
-  if words.size = dictSize then                                         //Если словарь заполнен
-   begin
-    e := true;                                                          //  ОШИБКА
-    write('Error: dictionary overflow ');                               //  Выводим сообщение
-   end
-  else                                                                  //Иначе
-   begin
-    words.names[words.size] := wordname;                                //  Записываем имя слова
-    words.code[words.size] := wordcode;                                 //  Записываем код слова
-    inc(words.size);                                                    //  Увеличиваем размер словаря
-   end;
+  t := dict_init(wordname, wordcode);
+  t^.next := words;
+  words := t;
  end;
 
-procedure newWord(var str: string; var words: dict; var e: boolean);
+procedure newWord(var str: string; var words: Pdict; var e: boolean);
  var
   wst, slovo: string;
  begin
@@ -796,7 +839,7 @@ copy(wst,pos(' ',wst),length(wst)),e);                                  //  До
     end;
  end;
 
-procedure execIf(var str: string; var stk,ret: stack; var words: dict; var e: boolean);
+procedure execIf(var str: string; var stk: Pstack; var e: boolean);
  var
   slovo: string;
   n: longint;
@@ -824,7 +867,7 @@ procedure execIf(var str: string; var stk,ret: stack; var words: dict; var e: bo
      end;
  end;
 
-procedure execElse(var str: string; var stk,ret: stack; var words: dict; var e: boolean);
+procedure execElse(var str: string; var e: boolean);
  var
   n: longint;
   slovo: string;
@@ -845,7 +888,7 @@ procedure execElse(var str: string; var stk,ret: stack; var words: dict; var e: 
    end;
  end;
 
-procedure execCycle(var str: string; var stk,ret: stack; var words: dict; var RAM: vars; var e: boolean);
+procedure execCycle(var str: string; var stk,ret: Pstack; var words: Pdict; var RAM: vars; var e: boolean);
  var
    wst, nst, slovo: string;
    n: longint;
@@ -905,7 +948,7 @@ or ((slovo = 'WHILE') and (n = 1))) then                                //  Ес
    end;
  end;
 
-function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; automatic: boolean; var e: boolean): boolean;
+function exec(str: string; var stk,ret: Pstack; var words: Pdict; var RAM: vars; automatic: boolean; var e: boolean): boolean;
  var
    slovo: string;
    f: boolean;
@@ -920,9 +963,9 @@ function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; a
     if slovo = ':' then                                                 //  Если слово :
       newWord(str,words,e)                                              //    Добавляем новое слово
     else if (slovo = 'IF') then                                         //  Иначе если слово IF
-      execIf(str,stk,ret,words,e)                                       //    Обрабатываем условие
+      execIf(str,stk,e)                                                 //    Обрабатываем условие
     else if (slovo = 'ELSE') then                                       //  Иначе если слово ELSE
-      execElse(str,stk,ret,words,e)                                     //    Обходим ветвь ELSE THEN
+      execElse(str,e)                                                   //    Обходим ветвь ELSE THEN
     else if (slovo = 'THEN') then                                       //  Иначе если слово THEN
        slovo := ''                                                      //    Пропускаем его
     else if (slovo = 'BEGIN') then                                      //  Иначе если слово BEGIN
@@ -938,26 +981,22 @@ function exec(str: string; var stk,ret: stack; var words: dict; var RAM: vars; a
     writeln;                                                            //  Пропускаем строку
    end;
    if e then                                                            //Если ошибка
-     stk.size := 0;                                                     //  Очищаем стек
+     stack_delete(stk);                                                 //  Очищаем стек
  end;
 
-procedure init(var stk,ret: stack; var words: dict; var RAM: vars);
+procedure init(var stk,ret: Pstack; var words: Pdict; var RAM: vars);
  begin
-  stk.size := 0;
-  ret.size := 0;
-  words.size := 0;
+  stk := stack_init(0);
+  ret := stack_init(0);
+  words := dict_init('', '');
   RAM.size := 0;
-  setLength(stk.arr,stSize);
-  setLength(ret.arr,stSize);
-  setLength(words.names,dictSize);
-  setLength(words.code,dictSize);
   setLength(RAM.arr,RAMsize);
  end;
 
 var
   bye,e: boolean;
-  stk, ret: stack;
-  words: dict;
+  stk, ret: Pstack;
+  words: Pdict;
   RAM: vars;
   str: string;
 begin
