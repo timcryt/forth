@@ -1,7 +1,7 @@
-forth:
+forth: forth.pas
 	fpc -O3 -XsX -Sh forth.pas
-	
-install:
+
+install: forth
 	cp forth /usr/bin/
 
 clean:
