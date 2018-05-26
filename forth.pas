@@ -74,6 +74,7 @@ function dict_init(name, code: string): Pdict;
   new(t);
   t^.name := name;
   t^.code := code;
+  t^.next := nil;
   dict_init := t;
  end;
 
