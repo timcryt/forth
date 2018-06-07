@@ -994,6 +994,22 @@ procedure init(var stk,ret: Pstack; var words: Pdict; var RAM: vars);
   setLength(RAM.arr,RAMsize);
  end;
 
+function getfile(filename: string): string;
+ var
+  f: text;
+  st, t: string;
+ begin
+  assign(f, filename);
+  reset(f);
+  st := '';
+  while not eof(f) do
+   begin
+    readln(f, t);
+    st := st + t + ' ';
+   end;
+  getfile := st;
+ end;
+
 var
   bye,e: boolean;
   stk, ret: Pstack;
@@ -1003,11 +1019,19 @@ var
 begin
   init(stk,ret,words,RAM); 	                                            //Инициализируем структуры
   bye := false;
-  while not bye and not eof do                                          //Пока не закончили
-   begin
-    readln(str);                                                        //  Вводим строку
-    format(str);                                                        //  Форматируем строку
-    macro(str);                                                         //  Применяем маросы
-    bye := exec(str,stk,ret,words,RAM,false,e);                         //  Исполняем
-   end;
+  if ParamCount = 0 then                                                //Если нет аргументов
+    while not bye and not eof do                                        //  Пока не закончили
+     begin
+      readln(str);                                                      //    Вводим строку
+      format(str);                                                      //    Форматируем строку
+      macro(str);                                                       //    Применяем маросы
+      bye := exec(str,stk,ret,words,RAM,false,e);                       //    Исполняем
+     end
+   else                                                                 //Иначе
+    begin
+     str := getfile(ParamStr(1));                                       //  Вводим файл
+     format(str);                                                       //  Форматируем строку
+     macro(str);                                                        //  Применяем макросы
+     exec(str, stk, ret, words, RAM, true, e);                          //  Исполняем
+    end;
 end.
